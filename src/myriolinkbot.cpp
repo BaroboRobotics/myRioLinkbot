@@ -1,22 +1,30 @@
 #include "myriolinkbot/myriolinkbot.hpp"
 
+#include <iostream>
 #include <chrono>
+
+std::string myRio::timeout_exception::mMsg;
 
 class JointStateHeartbeat
 {
 public:
-    JointStateHeartbeat(myRio::Linkbot* linkbot) : mLinkbot(linkbot) 
+    JointStateHeartbeat(myRio::Linkbot* linkbot) : mLinkbot(linkbot),
+        mHeartbeatEnable(true)
     { 
         auto heartbeat = std::thread(
         [this] 
         {
             std::unique_lock<std::mutex> heartbeat_lock(mHeartbeatLock);
-            while(
-                mHeartbeatCond.wait_for(
+            bool waitrc = false;
+            while(!waitrc) {
+                waitrc = mHeartbeatCond.wait_for(
                     heartbeat_lock,
                     std::chrono::milliseconds(1000),
                     [this] 
                     { 
+                        if(!mHeartbeatEnable) {
+                            return true;
+                        }
                         int timestamp;
                         barobo::JointState::Type jointStates[3];
                         mLinkbot->getJointStates(timestamp, 
@@ -27,18 +35,21 @@ public:
                             jointStates+3));
                         return !mHeartbeatEnable; 
                     }
-                )
-            );
+                );
+                std::cout << "Heartbeat: " << waitrc << std::endl;
+            }
+            std::cout << "Ending thread...\n";
         });
         std::swap(mThread, heartbeat);
     }
 
     ~JointStateHeartbeat() 
     {
-        std::unique_lock<std::mutex> heartbeat_lock(mHeartbeatLock);
         mHeartbeatEnable = false;
         mHeartbeatCond.notify_all();
-        mThread.join();
+        if(mThread.joinable()) {
+            mThread.join();
+        }
     }
 
 private:
@@ -89,6 +100,19 @@ myRio::Linkbot::Linkbot(const std::string& serialId) : barobo::Linkbot(serialId)
     for(int i = 0; i < 3; i++) {
         mJointStates[i] = barobo::JointState::STOP;
     }
+    setJointEventCallback(_jointEventCb, this);
+    getFormFactor(mFormFactor);
+    switch(mFormFactor) {
+        case barobo::FormFactor::I:
+            mMotorMask = 0x05;
+            break;
+        case barobo::FormFactor::L:
+            mMotorMask = 0x03;
+            break;
+        case barobo::FormFactor::T:
+            mMotorMask = 0x07;
+            break;
+    }
 }
 
 myRio::Linkbot::~Linkbot()
@@ -104,6 +128,7 @@ void myRio::Linkbot::jointEventCb(int jointNo, barobo::JointState::Type event)
 
 void myRio::Linkbot::moveWait(int mask, double timeout)
 {
+    std::cout << "moveWait start.\n";
     JointStateHeartbeat heartbeat(this);
 
     std::unique_lock<std::mutex> lock(mJointStateLock);
@@ -111,7 +136,7 @@ void myRio::Linkbot::moveWait(int mask, double timeout)
     getJointStates(timestamp, mJointStates[0], mJointStates[1],
         mJointStates[2]);
     auto state = isRobotMoving(
-                    mask,
+                    mask&mMotorMask,
                     std::vector<barobo::JointState::Type>(
                         mJointStates, mJointStates+3
                     )
@@ -126,13 +151,14 @@ void myRio::Linkbot::moveWait(int mask, double timeout)
     }
     bool timeout_flag = false;
     auto starttime = std::chrono::system_clock::now();
+    if(timeout != 0.0) {
     while(
         mJointStateCond.wait_for(
             lock,
             std::chrono::milliseconds(int(timeout*1000)),
             [this, &timeout_flag, mask, starttime, timeout] 
             {
-                if(isRobotMoving(mask, 
+                if(isRobotMoving(mask&mMotorMask, 
                                  std::vector<barobo::JointState::Type>(mJointStates,
                                      mJointStates+3 )
                                 ) == RobotMoveStatus::MOVING
@@ -151,6 +177,25 @@ void myRio::Linkbot::moveWait(int mask, double timeout)
             }
         )
     );
+    } else {
+        mJointStateCond.wait(
+            lock,
+            [this, &timeout_flag, mask, starttime, timeout] 
+            {
+                if(isRobotMoving(mask&mMotorMask, 
+                                 std::vector<barobo::JointState::Type>(mJointStates,
+                                     mJointStates+3 )
+                                ) == RobotMoveStatus::MOVING
+                )
+                {
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+        );
+    }
+    std::cout << "moveWait end.\n";
 }
 
 void myRio::Linkbot::_setJointStates(std::vector<barobo::JointState::Type> states)

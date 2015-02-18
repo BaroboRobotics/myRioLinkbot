@@ -56,3 +56,6 @@ if(WIN32)
         )
 endif()
 
+add_executable(movewait_test tests/movewait.cpp)
+target_link_libraries(movewait_test myrio_linkbot)
+target_compile_options(movewait_test PRIVATE "-std=c++11")

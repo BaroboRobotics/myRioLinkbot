@@ -47,10 +47,14 @@ public:
 
     void _setJointStates(std::vector<barobo::JointState::Type> states);
 
+    int motorMask() {return mMotorMask;}
+
 private:
     std::mutex mJointStateLock;
     std::condition_variable mJointStateCond;
     barobo::JointState::Type mJointStates[3];
+    barobo::FormFactor::Type mFormFactor;
+    int mMotorMask;
 };
 
 }
