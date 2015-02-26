@@ -43,11 +43,22 @@ public:
 
     void jointEventCb(int jointNo, barobo::JointState::Type event);
 
+    void drive(int mask, double, double, double);
+    void driveTo(int mask, double, double, double);
+    void move(int mask, double, double, double);
+    void moveContinuous(int mask, double, double, double);
+    void moveTo(int mask, double, double, double);
     void moveWait(int mask = 0x07, double timeout = 0.0);
+
+    bool isMoving();
 
     void _setJointStates(std::vector<barobo::JointState::Type> states);
 
     int motorMask() {return mMotorMask;}
+
+    void setJointStatesMoving(int mask);
+
+    void refreshJointStates();
 
 private:
     std::mutex mJointStateLock;

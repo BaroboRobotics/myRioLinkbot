@@ -36,9 +36,7 @@ public:
                         return !mHeartbeatEnable; 
                     }
                 );
-                std::cout << "Heartbeat: " << waitrc << std::endl;
             }
-            std::cout << "Ending thread...\n";
         });
         std::swap(mThread, heartbeat);
     }
@@ -73,13 +71,13 @@ RobotMoveStatus isRobotMoving(int mask,
             continue;
         }
         switch (s){
-            case barobo::JointState::STOP:
+            case barobo::JointState::COAST:
             case barobo::JointState::HOLD:
                 break;
             case barobo::JointState::MOVING:
                 status = RobotMoveStatus::MOVING;
                 return status;
-            case barobo::JointState::ERROR:
+            case barobo::JointState::FAILURE:
                 return RobotMoveStatus::ERROR;
             default:
                 break;
@@ -98,7 +96,7 @@ void _jointEventCb(int jointNo, barobo::JointState::Type event, int timestamp,
 myRio::Linkbot::Linkbot(const std::string& serialId) : barobo::Linkbot(serialId)
 {
     for(int i = 0; i < 3; i++) {
-        mJointStates[i] = barobo::JointState::STOP;
+        mJointStates[i] = barobo::JointState::COAST;
     }
     setJointEventCallback(_jointEventCb, this);
     getFormFactor(mFormFactor);
@@ -126,9 +124,38 @@ void myRio::Linkbot::jointEventCb(int jointNo, barobo::JointState::Type event)
     mJointStateCond.notify_all();
 }
 
+void myRio::Linkbot::drive(int mask, double j1, double j2, double j3)
+{
+    barobo::Linkbot::drive(mask, j1, j2, j3);
+    setJointStatesMoving(mask);
+}
+
+void myRio::Linkbot::driveTo(int mask, double j1, double j2, double j3)
+{
+    barobo::Linkbot::driveTo(mask, j1, j2, j3);
+    setJointStatesMoving(mask);
+}
+
+void myRio::Linkbot::move(int mask, double j1, double j2, double j3)
+{
+    barobo::Linkbot::move(mask, j1, j2, j3);
+    setJointStatesMoving(mask);
+}
+
+void myRio::Linkbot::moveContinuous(int mask, double j1, double j2, double j3)
+{
+    barobo::Linkbot::moveContinuous(mask, j1, j2, j3);
+    setJointStatesMoving(mask);
+}
+
+void myRio::Linkbot::moveTo(int mask, double j1, double j2, double j3)
+{
+    barobo::Linkbot::moveTo(mask, j1, j2, j3);
+    setJointStatesMoving(mask);
+}
+
 void myRio::Linkbot::moveWait(int mask, double timeout)
 {
-    std::cout << "moveWait start.\n";
     JointStateHeartbeat heartbeat(this);
 
     std::unique_lock<std::mutex> lock(mJointStateLock);
@@ -195,7 +222,25 @@ void myRio::Linkbot::moveWait(int mask, double timeout)
             }
         );
     }
-    std::cout << "moveWait end.\n";
+}
+
+bool myRio::Linkbot::isMoving()
+{
+    static std::chrono::time_point<std::chrono::system_clock> lastChecked;
+    auto now = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsedTime = now-lastChecked;
+    if(elapsedTime.count() > 2.0) {
+        refreshJointStates();
+        lastChecked = now;
+    }
+    bool moving = false;
+    for(int i = 0; i < 3; i++) {
+        if(mJointStates[i] == barobo::JointState::MOVING) {
+            moving = true;
+            break;
+        }
+    }
+    return moving;
 }
 
 void myRio::Linkbot::_setJointStates(std::vector<barobo::JointState::Type> states)
@@ -205,5 +250,23 @@ void myRio::Linkbot::_setJointStates(std::vector<barobo::JointState::Type> state
         mJointStates[i] = states[i];
     }
     mJointStateCond.notify_all();
+}
+
+void myRio::Linkbot::refreshJointStates()
+{
+    std::unique_lock<std::mutex> lock(mJointStateLock);
+    int timestamp;
+    getJointStates(timestamp, mJointStates[0], mJointStates[1],
+        mJointStates[2]);
+    mJointStateCond.notify_all();
+}
+
+void myRio::Linkbot::setJointStatesMoving(int mask)
+{
+    for(int i = 0; i < 3; i++) {
+        if( (1<<i) & mask) {
+            mJointStates[i] = barobo::JointState::MOVING;
+        }
+    }
 }
 

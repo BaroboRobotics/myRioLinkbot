@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 2.8.12) 
-project(liblinkbot CXX)
+project(liblinkbot C CXX)
+
+set(VERSION_MAJOR 0)
+set(VERSION_MINOR 0)
+set(VERSION_PATCH 1)
+set(VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 
 # Give subprojects access to LinkbotLabs.cmake
 list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/../cmake-modules")
@@ -26,6 +31,7 @@ find_package(Threads)
 
 set(SOURCES
     src/myriolinkbot.cpp
+    src/myriolinkbot.c.cpp
     )
 
 add_library(myrio_linkbot SHARED ${SOURCES})
@@ -42,12 +48,7 @@ target_include_directories(myrio_linkbot
            include
     )
 target_link_libraries(myrio_linkbot
-    PUBLIC sfp cxx-util
-           robot-interface dongle-interface
-           baromesh
-           rpc 
-           pthread
-           ${Boost_LIBRARIES}
+    PUBLIC baromesh
     )
 
 if(WIN32)
@@ -56,6 +57,17 @@ if(WIN32)
         )
 endif()
 
+set_target_properties(myrio_linkbot PROPERTIES
+    VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}
+    SOVERSION ${VERSION_MAJOR}
+    MACOSX_RPATH ON
+    LINK_FLAGS -Wl,-ulinkbotNew
+)
+
 add_executable(movewait_test tests/movewait.cpp)
 target_link_libraries(movewait_test myrio_linkbot)
 target_compile_options(movewait_test PRIVATE "-std=c++11")
+
+add_executable(movewait_c_test tests/movewait.c.cpp)
+target_link_libraries(movewait_c_test myrio_linkbot)
+target_compile_options(movewait_c_test PRIVATE "-std=c++11")
