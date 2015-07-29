@@ -3,14 +3,15 @@ project(liblinkbot C CXX)
 
 set(VERSION_MAJOR 0)
 set(VERSION_MINOR 0)
-set(VERSION_PATCH 1)
+set(VERSION_PATCH 2)
 set(VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 
 # Give subprojects access to LinkbotLabs.cmake
 list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/../cmake-modules")
 
-include(LinkbotLabs)
-ll_add_dependency(baromesh/library baromesh)
+#include(LinkbotLabs-SDK)
+#ll_add_dependency(baromesh/library baromesh)
+add_subdirectory(LinkbotLabs-SDK)
 
 if(CMAKE_CROSSCOMPILING)
     find_library(PTHREAD pthread ${CMAKE_PREFIX_PATH} REQUIRED)
