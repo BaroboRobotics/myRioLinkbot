@@ -224,7 +224,7 @@ void myRio::Linkbot::moveWait(int mask, double timeout)
     }
 }
 
-bool myRio::Linkbot::isMoving()
+bool myRio::Linkbot::isMoving(int mask)
 {
     static std::chrono::time_point<std::chrono::system_clock> lastChecked;
     auto now = std::chrono::system_clock::now();
@@ -235,6 +235,7 @@ bool myRio::Linkbot::isMoving()
     }
     bool moving = false;
     for(int i = 0; i < 3; i++) {
+        if(!((1<<i)&mask&mMotorMask)) continue;
         if(mJointStates[i] == barobo::JointState::MOVING) {
             moving = true;
             break;

@@ -12,7 +12,7 @@ typedef struct Linkbot Linkbot;
 myRioC::Linkbot* myRioLinkbotNew(const char* serialId);
 void myRioLinkbotDelete(myRioC::Linkbot* linkbot);
 
-int myRioLinkbotIsMoving(myRioC::Linkbot* linkbot, int* moving);
+int myRioLinkbotIsMoving(myRioC::Linkbot* linkbot, int mask, int* moving);
 int myRioLinkbotMoveWait(myRioC::Linkbot* linkbot, int mask, double timeout);
 
 #ifdef __cplusplus

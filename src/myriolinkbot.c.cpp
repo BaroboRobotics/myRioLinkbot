@@ -24,10 +24,10 @@ void myRioLinkbotDelete(myRioC::Linkbot* linkbot)
     delete linkbot;
 }
 
-int myRioLinkbotIsMoving(myRioC::Linkbot* linkbot, int* moving)
+int myRioLinkbotIsMoving(myRioC::Linkbot* linkbot, int mask, int* moving)
 {
     try {
-        *moving = linkbot->impl.isMoving();
+        *moving = linkbot->impl.isMoving(mask);
     } catch (...) {
         return -1;
     }

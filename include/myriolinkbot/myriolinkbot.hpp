@@ -50,7 +50,7 @@ public:
     void moveTo(int mask, double, double, double);
     void moveWait(int mask = 0x07, double timeout = 0.0);
 
-    bool isMoving();
+    bool isMoving(int mask = 0x07);
 
     void _setJointStates(std::vector<barobo::JointState::Type> states);
 

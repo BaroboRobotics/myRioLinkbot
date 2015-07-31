@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 2.8.12)
 project(liblinkbot C CXX)
 
 set(VERSION_MAJOR 0)
-set(VERSION_MINOR 0)
-set(VERSION_PATCH 2)
+set(VERSION_MINOR 1)
+set(VERSION_PATCH 1)
 set(VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 
 # Give subprojects access to LinkbotLabs.cmake
@@ -62,7 +62,7 @@ set_target_properties(myrio_linkbot PROPERTIES
     VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}
     SOVERSION ${VERSION_MAJOR}
     MACOSX_RPATH ON
-    LINK_FLAGS -Wl,-ulinkbotNew
+    LINK_FLAGS "-Wl,-ulinkbotNew -Wl,-ulinkbotMove"
 )
 
 add_executable(movewait_test tests/movewait.cpp)
