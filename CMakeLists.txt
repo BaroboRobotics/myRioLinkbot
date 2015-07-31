@@ -72,3 +72,9 @@ target_compile_options(movewait_test PRIVATE "-std=c++11")
 add_executable(movewait_c_test tests/movewait.c.cpp)
 target_link_libraries(movewait_c_test myrio_linkbot)
 target_compile_options(movewait_c_test PRIVATE "-std=c++11")
+
+install(TARGETS myrio_linkbot LIBRARY DESTINATION lib)
+
+set(CPACK_PACKAGE_NAME myrio_liblinkbot)
+set(CPACK_PACKAGE_VERSION ${VERSION})
+include(CPack)
